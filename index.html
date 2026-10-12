@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Límites y Cálculo Vectorial - Emparejamiento</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        :root {
+            --blue: #1e40af;
+            --blue-hover: #1d4ed8;
+            --orange: #c2410c;
+            --green: #15803d;
+            --slate: #334155;
+            --bg: #f8fafc;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+            margin: 0;
+            padding: 12px;
+            text-align: center;
+            color: #0f172a;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 16px;
+            max-width: 480px;
+            margin: 0 auto 16px auto;
+            box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);
+        }
+
+        .app-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            letter-spacing: 1px;
+            font-weight: 900;
+        }
+
+        .app-header p {
+            margin: 4px 0 0 0;
+            font-size: 0.75rem;
+            opacity: 0.85;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .lobby-card {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            max-width: 480px;
+            margin: 0 auto;
+            box-shadow: 0 4px 20px -2px rgba(0,0,0,0.08);
+            border: 1px solid #e2e8f0;
+            box-sizing: border-box;
+        }
+
+        .rooms-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .btn-room-select {
+            background: #f1f5f9;
+            border: 2px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 10px 0;
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: var(--slate);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-room-select.active {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(30, 64, 175, 0.3);
+        }
+
+        .rules-box {
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 12px;
+            text-align: left;
+            margin: 16px 0;
+            font-size: 0.78rem;
+            color: #475569;
+            line-height: 1.4;
+        }
+
+        .rules-box b { color: var(--slate); }
+
+        .card-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border: 2px solid #94a3b8;
+            border-radius: 12px;
+            padding: 12px;
+            width: 95%;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+            text-align: left;
+            cursor: pointer;
+            transition: transform 0.15s, border-color 0.15s;
+            user-select: none;
+            box-sizing: border-box;
+        }
+
+        .card.selected {
+            border: 3px solid var(--blue);
+            background: #eff6ff;
+            transform: scale(1.02);
+        }
+
+        .card-media {
+            width: 95px;
+            min-width: 95px;
+            height: 95px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .card-media img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+
+        .card-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-header { font-size: 0.6rem; font-weight: 800; color: #64748b; letter-spacing: 0.5px; }
+
+        .card-badge {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            display: inline-block;
+            margin: 2px 0;
+            text-transform: uppercase;
+            width: fit-content;
+        }
+
+        .badge-trayectoria { background-color: var(--blue); }
+        .badge-polares { background-color: var(--orange); }
+        .badge-hopital { background-color: var(--green); }
+        .badge-continuidad { background-color: var(--slate); }
+
+        .card-title { font-size: 0.85rem; font-weight: 900; color: #1e293b; }
+
+        .card-formula {
+            font-size: 0.9rem;
+            font-weight: 800;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 4px 6px;
+            border-radius: 4px;
+            margin: 4px 0;
+            color: #0f172a;
+            text-align: center;
+        }
+
+        .card-desc { font-size: 0.75rem; color: #475569; line-height: 1.2; }
+        .card-footer { font-size: 0.55rem; font-weight: 700; color: #94a3b8; text-align: right; margin-top: 4px; }
+
+        .btn {
+            background: var(--blue);
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            width: 100%;
+            max-width: 500px;
+            margin: 10px auto;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover { background: var(--blue-hover); }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; box-shadow: none; }
+        
+        .btn-cuadricas { 
+            background: var(--green); 
+            font-size: 1.4rem; 
+            padding: 18px; 
+            display: none; 
+        }
+
+        .btn-cuadricas:disabled {
+            background: var(--green) !important;
+            opacity: 0.35 !important;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+            box-shadow: none !important;
+            transform: scale(0.98);
+        }
+        
+        .btn-mesa { 
+            background: #dc2626; 
+            font-size: 1.4rem; 
+            padding: 18px; 
+            display: none; 
+        }
+
+        .btn-mesa:disabled {
+            background: #dc2626 !important;
+            opacity: 0.35 !important;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+            box-shadow: none !important;
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-header">
+        <h1>LÍMITES Y CÁLCULO</h1>
+        <p>JUEGO DE EMPAREJAMIENTO | SEGUNDO CORTE</p>
+    </div>
+
+    <!-- PANTALLA 1: LOBBY -->
+    <div id="screen-lobby">
+        <div class="lobby-card">
+            <h3 style="margin-top:0; font-size:1.1rem; color:#1e293b;">Selecciona tu Grupo de Trabajo</h3>
+            
+            <div class="rooms-grid">
+                <button class="btn-room-select active" onclick="selectRoomNumber(1, this)">1</button>
+                <button class="btn-room-select" onclick="selectRoomNumber(2, this)">2</button>
+                <button class="btn-room-select" onclick="selectRoomNumber(3, this)">3</button>
+                <button class="btn-room-select" onclick="selectRoomNumber(4, this)">4</button>
+                <button class="btn-room-select" onclick="selectRoomNumber(5, this)">5</button>
+                <button class="btn-room-select" onclick="selectRoomNumber(6, this)">6</button>
+                <button class="btn-room-select" onclick="selectRoomNumber(7, this)">7</button>
+                <button class="btn-room-select" onclick="selectRoomNumber(8, this)">8</button>
+                <button class="btn-room-select" onclick="selectRoomNumber(9, this)">9</button>
+                <button class="btn-room-select" onclick="selectRoomNumber(10, this)">10</button>
+            </div>
+
+            <button class="btn" onclick="joinRoom()">Unirse al Grupo <span id="selected-room-lbl">1</span></button>
+
+            <div class="rules-box">
+                <b>📌 Reglas del Juego:</b>
+                <ul style="margin: 6px 0 0 0; padding-left: 16px;">
+                    <li>Reúne a los <b>4 integrantes</b> en el grupo.</li>
+                    <li>Selecciona y <b>descarta 1 carta</b> por turno simultáneo.</li>
+                    <li>¡Junta las 4 piezas clave de un tema y grita <b>¡EMPAREJADO!</b></li>
+                </ul>
+            </div>
+
+            <button style="background:none; border:none; color:#94a3b8; text-decoration:underline; cursor:pointer; font-size:0.8rem; font-weight:600;" onclick="resetRoom()">Reiniciar esta Sala</button>
+        </div>
+    </div>
+
+    <!-- PANTALLA 2: SALA DE ESPERA -->
+    <div id="screen-waiting" style="display:none;" class="lobby-card">
+        <h3 style="margin-top:0;">GRUPO <span id="room-num"></span></h3>
+        <p style="font-size:1.1rem;">Eres el <b style="color:var(--blue);">Jugador <span id="wait-player-id"></span></b></p>
+        <div style="background:#eff6ff; border:1px solid #bfdbfe; padding:12px; border-radius:10px; margin:15px 0;">
+            <p style="margin:0; font-size:0.9rem; color:#1e40af;">Jugadores conectados en la mesa:</p>
+            <span id="player-count" style="color:var(--blue); font-size:2rem; font-weight:900;">1</span> <span style="font-size:1.2rem; font-weight:700; color:#64748b;">/ 4</span>
+        </div>
+        <p style="font-size:0.8rem; color:#64748b; margin-bottom:15px;">Esperando a tus compañeros para repartir las cartas...</p>
+        <button style="background:none; border:none; color:#dc2626; text-decoration:underline; cursor:pointer; font-size:0.85rem;" onclick="leaveRoom()">Salir de la Sala</button>
+    </div>
+
+    <!-- PANTALLA 3: JUEGO EN VIVO -->
+    <div id="screen-game" style="display:none;">
+        <div style="background:white; padding:10px; border-radius:10px; font-weight:700; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05); border:1px solid #e2e8f0;">
+            GRUPO <span id="display-room-num"></span> | Eres el <span style="color:var(--blue);">Jugador <span id="my-player-id"></span></span>
+        </div>
+
+        <button class="btn" id="btn-pass" onclick="confirmDescarte()" disabled>Selecciona 1 carta para descartar</button>
+
+        <div id="my-hand" class="card-container"></div>
+
+        <button class="btn btn-cuadricas" id="btn-cuadricas" onclick="claimWin()">¡EMPAREJADO!</button>
+        <button class="btn btn-mesa" id="btn-mesa" onclick="touchTable()">¡PONER MANO EN LA MESA!</button>
+        
+        <button id="btn-restart-game" class="btn" style="background:#64748b; display:none; margin-top:15px;" onclick="leaveRoom()">Volver al Lobby / Nueva Ronda</button>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDJKAR2WXyCfJEsWya6uAM8QKujXmZcKcY",
+            authDomain: "juego-cuadricas.firebaseapp.com",
+            databaseURL: "https://juego-cuadricas-default-rtdb.firebaseio.com",
+            projectId: "juego-cuadricas",
+            storageBucket: "juego-cuadricas.firebasestorage.app",
+            messagingSenderId: "464501554982",
+            appId: "1:464501554982:web:5be01b1df45b3f0da4cbe7"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // NUEVO MAZO MAESTRO - SEGUNDO CORTE (LÍMITES Y CÁLCULO VECTORIAL)
+        const deckMaster = [
+            // FAMILIA 1: TRAYECTORIAS
+            { id: 1, family: 'trayectoria', badge: 'TEMA', badgeClass: 'badge-trayectoria', title: 'LÍMITE POR TRAYECTORIA', formula: 'Aproximación Lineal', desc: 'Método para evaluar si un límite multivariable no existe al depender de la dirección.', footer: 'ESTRATEGIA', img: '' },
+            { id: 2, family: 'trayectoria', badge: 'SUSTITUCIÓN', badgeClass: 'badge-trayectoria', title: 'RECTAS y PARÁBOLAS', formula: 'y = mx  /  y = mx²', desc: 'Sustitución de caminos directos hacia el origen (0,0).', footer: 'HERRAMIENTA', img: '' },
+            { id: 3, family: 'trayectoria', badge: 'REGLA CLAVE', badgeClass: 'badge-trayectoria', title: 'INDEPENDENCIA DE m', formula: 'Si depende de m ⇒ NO EXISTE', desc: 'Si los resultados varían según la pendiente m, el límite no existe.', footer: 'CONCLUSIÓN', img: '' },
+            { id: 4, family: 'trayectoria', badge: 'VISUAL', badgeClass: 'badge-trayectoria', title: 'GRÁFICA CON SALTO', formula: 'Comportamiento en Origen', desc: 'Visualización de trayectorias múltiples en superficies discontinuas.', footer: 'GRÁFICA', img: 'trayectoria-visual.png' },
+
+            // FAMILIA 2: COORDENADAS POLARES
+            { id: 5, family: 'polares', badge: 'TEMA', badgeClass: 'badge-polares', title: 'COORDENADAS POLARES', formula: 'Transformación (r, θ)', desc: 'Simplificación de límites trigonométricos y radiales hacia el origen.', footer: 'ESTRATEGIA', img: '' },
+            { id: 6, family: 'polares', badge: 'SUSTITUCIÓN', badgeClass: 'badge-polares', title: 'EQUIVALENCIAS', formula: 'x = r cos(θ) , y = r sin(θ)', desc: 'Identidades fundamentales y sustitución de x² + y² = r².', footer: 'HERRAMIENTA', img: '' },
+            { id: 7, family: 'polares', badge: 'REGLA CLAVE', badgeClass: 'badge-polares', title: 'LÍMITE RADIAL', formula: 'Evaluar cuando r → 0', desc: 'El resultado debe ser independiente de θ para que el límite exista.', footer: 'CONCLUSIÓN', img: '' },
+            { id: 8, family: 'polares', badge: 'VISUAL', badgeClass: 'badge-polares', title: 'PLANO POLAR', formula: 'Círculos Concéntricos', desc: 'Representación gráfica de sectores y radios convergentes.', footer: 'GRÁFICA', img: 'polares-visual.png' },
+
+            // FAMILIA 3: REGLA DE L'HÔPITAL
+            { id: 9, family: 'hopital', badge: 'TEMA', badgeClass: 'badge-hopital', title: 'REGLA DE L\'HÔPITAL', formula: 'Indeterminaciones', desc: 'Herramienta analítica aplicable tras reducir expresiones a una variable.', footer: 'ESTRATEGIA', img: '' },
+            { id: 10, family: 'hopital', badge: 'SUSTITUCIÓN', badgeClass: 'badge-hopital', title: 'FORMA INDETERMINADA', formula: '0 / 0   ó   ∞ / ∞', desc: 'Condición previa obligatoria antes de derivar numerador y denominador.', footer: 'HERRAMIENTA', img: '' },
+            { id: 11, family: 'hopital', badge: 'REGLA CLAVE', badgeClass: 'badge-hopital', title: 'DERIVACIÓN SEPARADA', formula: 'lim [ f\'(x) / g\'(x) ]', desc: 'Derivar la parte superior e inferior por separado (¡no es regla del cociente!).', footer: 'CONCLUSIÓN', img: '' },
+            { id: 12, family: 'hopital', badge: 'VISUAL', badgeClass: 'badge-hopital', title: 'COCIENTE DE TAZAS', formula: 'Análisis de Tasas', desc: 'Visualización de razones de cambio convergentes.', footer: 'GRÁFICA', img: 'hopital-visual.png' },
+
+            // FAMILIA 4: APLICACIONES (CONTINUIDAD)
+            { id: 13, family: 'continuidad', badge: 'TEMA', badgeClass: 'badge-continuidad', title: 'CONTINUIDAD MULTIVARIABLE', formula: 'Sin saltos ni huecos', desc: 'Estudio de la suavidad y consistencia de una función en un punto.', footer: 'ESTRATEGIA', img: '' },
+            { id: 14, family: 'continuidad', badge: 'SUSTITUCIÓN', badgeClass: 'badge-continuidad', title: 'CONDICIÓN DE TRES PASOS', formula: 'lim f(x,y) = f(a,b)', desc: 'Validación de que el límite existe y coincide con el valor evaluado.', footer: 'HERRAMIENTA', img: '' },
+            { id: 15, family: 'continuidad', badge: 'REGLA CLAVE', badgeClass: 'badge-continuidad', title: 'SUPERFICIE SUAVE', formula: 'Definida en todo el entorno', desc: 'Ausencia de asíntotas verticales, huecos o fracturas.', footer: 'CONCLUSIÓN', img: '' },
+            { id: 16, family: 'continuidad', badge: 'VISUAL', badgeClass: 'badge-continuidad', title: 'SUPERFICIE CONTINUA', formula: 'Malla Suave Z = f(x,y)', desc: 'Representación geométrica de una función continua en ℝ².', footer: 'GRÁFICA', img: 'continuidad-visual.png' }
+        ];
+
+        // PENITENCIAS EXCLUSIVAS DEL SEGUNDO CORTE (CALCULO PESADO EN TABLERO)
+        const PENITENCIAS = [
+            "Pásate al tablero: Demuestra si existe lim₍ₓ,ᵧ₎→₉(0,0) [ (x³y) / (x⁶ + y²) ] usando trayectorias y=mx.",
+            "Pásate al tablero: Evalúa el límite lim₍ₓ,ᵧ₎→₉(0,0) [ (x³ + y³) / (x² + y²) ] transformándolo a coordenadas polares.",
+            "Pásate al tablero: Aplica L'Hôpital para resolver lim₍ₓ→0₎ [ (sin(x) - x) / x³ ] mostrando paso a paso sus derivadas.",
+            "Pásate al tablero: Determina analíticamente si f(x,y) = (xy)/(x²+y²) es continua en (0,0)."
+        ];
+
+        let roomId = 1;
+        let playerId = null;
+        let selectedCardIndex = null;
+        let myHand = [];
+        let isRotating = false;
+        let hasTouchedTable = false;
+        let hasClaimedWin = false;
+
+        function selectRoomNumber(num, btn) {
+            roomId = num;
+            document.querySelectorAll('.btn-room-select').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('selected-room-lbl').innerText = num;
+        }
+
+        function resetRoom() {
+            db.ref('rooms/room_' + roomId).remove().then(() => {
+                alert(`Sala ${roomId} ha sido reiniciada con éxito.`);
+                location.reload();
+            });
+        }
+
+        function joinRoom() {
+            document.getElementById('room-num').innerText = roomId;
+            document.getElementById('display-room-num').innerText = roomId;
+            
+            const roomRef = db.ref('rooms/room_' + roomId);
+
+            roomRef.transaction((room) => {
+                if (!room) {
+                    return { playersCount: 1, gameState: 'waiting', hands: {}, descartes: {}, reactions: [] };
+                }
+                
+                if (room.gameState === 'playing' || room.gameState === 'cuadricas_claimed' || room.playersCount >= 4) {
+                    return; 
+                }
+
+                room.playersCount = (room.playersCount || 0) + 1;
+                return room;
+            }, (error, committed, snapshot) => {
+                if (committed && snapshot.exists()) {
+                    playerId = snapshot.val().playersCount;
+                    document.getElementById('my-player-id').innerText = playerId;
+                    document.getElementById('wait-player-id').innerText = playerId;
+                    document.getElementById('screen-lobby').style.display = 'none';
+                    document.getElementById('screen-waiting').style.display = 'block';
+
+                    listenRoom();
+                } else {
+                    alert(`⚠️ El Grupo ${roomId} ya tiene 4 integrantes o está en juego. Selecciona otra sala.`);
+                }
+            });
+        }
+
+        function leaveRoom() {
+            if (roomId && playerId) {
+                const roomRef = db.ref('rooms/room_' + roomId);
+                roomRef.transaction((room) => {
+                    if (room) {
+                        room.playersCount = Math.max(0, (room.playersCount || 1) - 1);
+                        if (room.playersCount === 0) {
+                            return null;
+                        }
+                    }
+                    return room;
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                location.reload();
+            }
+        }
+
+        function listenRoom() {
+            const roomRef = db.ref('rooms/room_' + roomId);
+            
+            roomRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                const count = data.playersCount || 0;
+                document.getElementById('player-count').innerText = count;
+
+                if (count === 4 && data.gameState === 'waiting' && playerId === 1) {
+                    dealCards();
+                }
+
+                if (data.gameState === 'playing') {
+                    document.getElementById('screen-waiting').style.display = 'none';
+                    document.getElementById('screen-game').style.display = 'block';
+                    
+                    if (data.hands && data.hands[playerId]) {
+                        myHand = data.hands[playerId];
+                        renderHand();
+                        checkCuadricas();
+                    }
+
+                    const descartesCount = data.descartes ? Object.keys(data.descartes).length : 0;
+                    const btnPass = document.getElementById('btn-pass');
+
+                    if (data.descartes && data.descartes[playerId]) {
+                        btnPass.disabled = true;
+                        btnPass.innerText = `Carta confirmada. Esperando al resto... (${descartesCount}/4)`;
+                    } else {
+                        if (selectedCardIndex === null) {
+                            btnPass.disabled = true;
+                            btnPass.innerText = "Selecciona 1 carta para descartar";
+                        } else {
+                            btnPass.disabled = false;
+                            btnPass.innerText = `Confirmar Descarte (${descartesCount}/4 listos)`;
+                        }
+                    }
+
+                    if (descartesCount === 4 && !isRotating) {
+                        isRotating = true;
+                        ejecutarRotacionSimultanea(data.hands, data.descartes);
+                    }
+                }
+
+                if (data.gameState === 'cuadricas_claimed') {
+                    if (data.winner !== playerId) {
+                        const btnMesa = document.getElementById('btn-mesa');
+                        btnMesa.style.display = 'block';
+                        
+                        if (hasTouchedTable) {
+                            btnMesa.disabled = true;
+                            btnMesa.innerText = "¡MANO PUESTA!";
+                        } else {
+                            btnMesa.disabled = false;
+                            btnMesa.innerText = "¡PONER MANO EN LA MESA!";
+                        }
+
+                        document.getElementById('btn-cuadricas').style.display = 'none';
+                        document.getElementById('btn-pass').style.display = 'none';
+                    }
+                }
+
+                if (data.gameState === 'finished') {
+                    document.getElementById('btn-restart-game').style.display = 'block';
+                    
+                    if (data.loser === playerId) {
+                        alert("¡FUISTE EL ÚLTIMO EN REACCIONAR!\n\nToma tu PENITENCIA DE SEGUNDO CORTE:\n\n" + data.penitencia);
+                    } else {
+                        alert(`Ronda terminada. El Jugador ${data.loser} quedó de último y debe resolver la penitencia en el tablero.`);
+                    }
+                }
+            });
+        }
+
+        function dealCards() {
+            let shuffled = [...deckMaster].sort(() => Math.random() - 0.5);
+            let hands = {
+                1: shuffled.slice(0, 4),
+                2: shuffled.slice(4, 8),
+                3: shuffled.slice(8, 12),
+                4: shuffled.slice(12, 16)
+            };
+            db.ref('rooms/room_' + roomId).update({
+                gameState: 'playing',
+                hands: hands,
+                descartes: {},
+                reactions: []
+            });
+        }
+
+        function renderHand() {
+            const container = document.getElementById('my-hand');
+            container.innerHTML = '';
+            myHand.forEach((card, index) => {
+                if (!card) return;
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card' + (selectedCardIndex === index ? ' selected' : '');
+                
+                let mediaHTML = card.img ? `<div class="card-media"><img src="${card.img}" alt="Media"></div>` : '';
+
+                cardEl.innerHTML = `
+                    ${mediaHTML}
+                    <div class="card-content">
+                        <div class="card-header">CÁLCULO VECTORIAL</div>
+                        <span class="card-badge ${card.badgeClass}">${card.badge}</span>
+                        <div class="card-title">${card.title}</div>
+                        <div class="card-formula">${card.formula}</div>
+                        <div class="card-desc">${card.desc}</div>
+                        <div class="card-footer">${card.footer}</div>
+                    </div>
+                `;
+
+                cardEl.onclick = () => {
+                    selectedCardIndex = index;
+                    renderHand();
+                    const btnPass = document.getElementById('btn-pass');
+                    btnPass.disabled = false;
+                    btnPass.innerText = "Confirmar Descarte";
+                };
+                container.appendChild(cardEl);
+            });
+        }
+
+        function confirmDescarte() {
+            if (selectedCardIndex === null) return;
+
+            const cardToPass = myHand[selectedCardIndex];
+            
+            db.ref(`rooms/room_${roomId}/descartes/${playerId}`).set({
+                card: cardToPass,
+                fromIndex: selectedCardIndex
+            });
+        }
+
+        function ejecutarRotacionSimultanea(currentHands, descartes) {
+            if (playerId !== 1) {
+                isRotating = false;
+                return; 
+            }
+
+            let newHands = JSON.parse(JSON.stringify(currentHands));
+
+            for (let p = 1; p <= 4; p++) {
+                const idx = descartes[p].fromIndex;
+                newHands[p].splice(idx, 1);
+            }
+
+            for (let p = 1; p <= 4; p++) {
+                const nextPlayer = (p % 4) + 1;
+                newHands[nextPlayer].push(descartes[p].card);
+            }
+
+            db.ref(`rooms/room_${roomId}`).update({
+                hands: newHands,
+                descartes: {}
+            }).then(() => {
+                isRotating = false;
+            });
+        }
+
+        function checkCuadricas() {
+            if (myHand.length === 4) {
+                const firstFamily = myHand[0].family;
+                const isMatch = myHand.every(c => c && c.family === firstFamily);
+                const btnCuadricas = document.getElementById('btn-cuadricas');
+
+                if (isMatch) {
+                    btnCuadricas.style.display = 'block';
+                    if (hasClaimedWin) {
+                        btnCuadricas.disabled = true;
+                        btnCuadricas.innerText = "¡EMPAREJADO!";
+                    } else {
+                        btnCuadricas.disabled = false;
+                        btnCuadricas.innerText = "¡EMPAREJADO!";
+                    }
+                } else {
+                    btnCuadricas.style.display = 'none';
+                }
+            }
+        }
+
+        function claimWin() {
+            if (hasClaimedWin) return;
+            
+            hasClaimedWin = true;
+            const btnCuadricas = document.getElementById('btn-cuadricas');
+            btnCuadricas.disabled = true;
+            btnCuadricas.innerText = "¡EMPAREJADO!";
+
+            db.ref('rooms/room_' + roomId).update({
+                gameState: 'cuadricas_claimed',
+                winner: playerId,
+                reactions: []
+            });
+        }
+
+        function touchTable() {
+            if (hasTouchedTable) return;
+            
+            hasTouchedTable = true;
+            const btnMesa = document.getElementById('btn-mesa');
+            btnMesa.disabled = true;
+            btnMesa.innerText = "¡MANO PUESTA!";
+            
+            db.ref('rooms/room_' + roomId).transaction((room) => {
+                if (room) {
+                    if (!room.reactions) room.reactions = [];
+                    
+                    if (!room.reactions.includes(playerId)) {
+                        room.reactions.push(playerId);
+                    }
+
+                    if (room.reactions.length === 3) {
+                        const allPlayers = [1, 2, 3, 4];
+                        let loser = allPlayers.find(p => p !== room.winner && !room.reactions.includes(p));
+                        
+                        if (!loser) {
+                            loser = room.reactions[2];
+                        }
+
+                        room.gameState = 'finished';
+                        room.loser = loser;
+                        room.penitencia = PENITENCIAS[Math.floor(Math.random() * PENITENCIAS.length)];
+                    }
+                }
+                return room;
+            });
+        }
+    </script>
+</body>
+</html>
